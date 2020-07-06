@@ -1,0 +1,205 @@
+DATAS SEGMENT
+	 buf db 100 dup(0),'$'		;总空间
+     buf1 db 10,?,10 dup(0),0ah,0dh,'$'  ;输入姓名
+     long1 equ 12			;一个人占用空间
+     innum db 4,?,4 dup(?),'$'		;分数 补足三位
+     buf6 db 12 dup(0)			;交换用
+     buf2 db 'input name:$'		;
+     buf3 db 'input score:$'		;
+     long equ 7				;姓名
+     number db 0			;人数
+     buf7 db 0dh,0ah,'name',3 dup(0),'score',0dh,0ah,'$'	;
+     again db 'again?(Y/N):$'
+DATAS ENDS
+
+STACKS SEGMENT
+    ;此处输入堆栈段代码
+STACKS ENDS
+
+CODES SEGMENT
+    ASSUME CS:CODES,DS:DATAS,SS:STACKS
+START:
+    MOV AX,DATAS
+    MOV DS,AX
+    mov es,ax
+    xor bx,bx
+    xor cx,cx
+   ; mov cx,number
+s:  push cx 
+	add number,1   
+	call input 
+    xor cx,cx
+	mov cl,12
+	lea di,buf
+	add di,bx
+	cld
+	lea si,buf1+2
+	rep movsb
+	mov byte ptr [di],'$'
+	add bx,12
+	
+	lea si,buf1+2
+	mov dl,0			;清零
+	mov cx,10	
+zero1:
+	mov byte ptr[si],dl
+	inc si
+	loop zero1
+	
+    pop cx
+    call final
+;    loop s
+    
+    lea dx,buf7
+    mov ah,09h
+    int 21h
+    call sequence
+	lea dx,buf
+    mov ah,09h
+    int 21h
+    
+    MOV AH,4CH
+    INT 21H
+
+;输入子程序  
+input proc near
+	push bx
+	push cx
+	lea dx,buf2
+    mov ah,09h
+    int 21h
+    
+	lea dx,buf1
+    mov ah,0ah
+    int 21h
+    lea si,buf1
+    xor bx,bx
+    mov bl,byte ptr[si+1]
+    add bl,2   
+    mov byte ptr[bx+si],0 ;回车置零
+    
+    mov dl,0ah	;换行
+    mov ah,02h
+    int 21h
+    mov dl,0dh
+    mov ah,02h
+    int 21h
+	
+	lea dx,buf3
+    mov ah,09h
+    int 21h  
+    lea dx,innum
+	mov ah,0ah
+	int 21h
+	
+	xor cx,cx
+	mov cl,innum+1
+	;xor bx,bx
+	mov bl,buf1+1
+	lea di,buf1+2
+	add di,long
+	cld
+	lea si,innum+2
+	rep movsb
+    mov dl,0ah	;换行
+    mov ah,02h
+    int 21h
+    mov dl,0dh
+    mov ah,02h
+    int 21h
+    
+	lea bx,innum+2
+	mov al,0
+	mov cx,4			;清零
+zero:
+	mov byte ptr[bx],al
+	inc bx
+	loop zero
+    
+    pop cx
+    pop bx	
+	ret
+	
+input endp
+
+;排序子程序冒泡
+sequence proc near
+	;lea al,number
+	;xor cx
+	mov cl,[number]
+	dec cx
+re:
+	push cx
+	xor bx,bx
+next:
+	mov al,[bx+buf+long]
+	cmp al,[bx+buf+long+long1]
+	ja L2
+	jb L1
+	mov al,[bx+buf+long+1]
+	cmp al,[bx+buf+long+long1+1]
+	ja L2
+	jb L1
+	mov al,[bx+buf+long+2]
+	cmp al,[bx+buf+long+long1+2]
+	jae L2
+	jb L1
+L1:
+	push cx
+	mov cx,long1
+	lea si,[buf+bx]
+	lea di,buf6
+	rep movsb
+	mov cx,long1
+	lea si,[buf+bx+long1]
+	lea di,[buf+bx]
+	rep movsb
+	mov cx,long1
+	lea si,buf6
+	lea di,[buf+bx+long1]
+	rep movsb	
+	pop cx
+L2:
+	add bx,long1
+	loop next
+	pop cx
+	loop re
+	ret
+
+final:
+	mov dl,0ah	;换行
+    mov ah,02h
+    int 21h
+    mov dl,0dh
+    mov ah,02h
+    int 21h
+	lea dx,again
+    mov ah,09h
+    int 21h    
+    mov ah,01h
+    int 21h
+    cmp al,'N'
+    jz return
+    cmp al,'n'
+    jz return
+    cmp al,'Y'
+    jz xia
+xia:    cmp al,'y'
+    mov dl,0ah	;换行
+    mov ah,02h
+    int 21h
+    mov dl,0dh
+    mov ah,02h
+    int 21h
+    jnz main_check_tiaozhuan
+    jmp s 
+    main_check_tiaozhuan:
+    jmp final
+    main_exit:
+return:
+	ret    	
+sequence endp
+CODES ENDS
+    END START
+
+
